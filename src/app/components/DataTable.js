@@ -97,8 +97,17 @@ const DataTable = ({ data, columns, setData, setColumns }) => {
 
   // Reset layout to original state
   const resetLayout = () => {
+    if (originalColumns.length > 0 && originalData.length > 0) {
+      setColumns(originalColumns);
+      setData(originalData);
+      setOriginalColumns([]);
+      setOriginalData([]);
+      setSnackbar({ open: true, message: 'Layout reset successfully!', severity: 'success' });
+    } else {
+      setSnackbar({ open: true, message: 'No layout to reset.', severity: 'info' });
+    }
+    // Clear localStorage if used
     localStorage.removeItem('columns');
-    window.location.reload();
   };
 
   // Undo header detection: Move current headers back to data and reset columns to defaults

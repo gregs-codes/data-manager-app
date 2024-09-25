@@ -2,11 +2,13 @@
 'use client';
 
 import React from 'react';
+import Typography from '@mui/material/Typography';
 
 const Home = () => {
   return (
     <>
-      {/* Additional content can be added here if needed */}
+      {/* The DataTable is already included in the layout */}
+      {/* You can add additional content here if needed */}
     </>
   );
 };
