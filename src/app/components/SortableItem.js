@@ -4,11 +4,18 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import TableCell from '@mui/material/TableCell';
-import IconButton from '@mui/material/IconButton';
+import {
+  TableCell,
+  TableSortLabel,
+  IconButton,
+  TextField,
+  Box,
+} from '@mui/material';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import EditIcon from '@mui/icons-material/Edit';
+import SaveIcon from '@mui/icons-material/Save';
 
-const SortableItem = ({ id, label, onEdit }) => {
+export const SortableItem = ({ id, label, onEdit, onSort, order, orderBy }) => {
   const {
     attributes,
     listeners,
@@ -16,67 +23,64 @@ const SortableItem = ({ id, label, onEdit }) => {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id });
+  } = useSortable({ id: id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    backgroundColor: isDragging ? '#f0f0f0' : 'inherit',
-    cursor: 'grab',
+    opacity: isDragging ? 0.5 : 1,
+    // Do not set display: 'flex' here
+  };
+
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editedLabel, setEditedLabel] = React.useState(label);
+
+  const handleSave = () => {
+    onEdit(id, editedLabel);
+    setIsEditing(false);
   };
 
   return (
-    <TableCell ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <IconButton size="small" sx={{ mr: 1, cursor: 'grab' }}>
+    <TableCell ref={setNodeRef} style={style} {...attributes}>
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        {/* Drag Handle */}
+        <Box
+          sx={{ display: 'flex', alignItems: 'center', mr: 1, cursor: 'grab' }}
+          {...listeners}
+        >
           <DragIndicatorIcon />
-        </IconButton>
-        <EditableHeader label={label} onEdit={(newLabel) => onEdit(id, newLabel)} />
-      </div>
+        </Box>
+        
+        {/* Sortable Label and Edit Button */}
+        {isEditing ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+            <TextField
+              value={editedLabel}
+              onChange={(e) => setEditedLabel(e.target.value)}
+              size="small"
+              variant="standard"
+              sx={{ mr: 1 }}
+            />
+            <IconButton size="small" onClick={handleSave}>
+              <SaveIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        ) : (
+          <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+            <TableSortLabel
+              active={orderBy === id}
+              direction={orderBy === id ? order : 'asc'}
+              onClick={() => onSort(id)}
+              sx={{ flexGrow: 1 }}
+            >
+              {label}
+            </TableSortLabel>
+            <IconButton size="small" onClick={() => setIsEditing(true)}>
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        )}
+      </Box>
     </TableCell>
   );
 };
-
-const EditableHeader = ({ label, onEdit }) => {
-  const [isEditing, setIsEditing] = React.useState(false);
-  const [currentLabel, setCurrentLabel] = React.useState(label);
-
-  const handleDoubleClick = () => {
-    setIsEditing(true);
-  };
-
-  const handleBlur = () => {
-    setIsEditing(false);
-    onEdit(currentLabel.trim() || 'Unnamed Column');
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      setIsEditing(false);
-      onEdit(currentLabel.trim() || 'Unnamed Column');
-    }
-  };
-
-  return isEditing ? (
-    <input
-      type="text"
-      value={currentLabel}
-      onChange={(e) => setCurrentLabel(e.target.value)}
-      onBlur={handleBlur}
-      onKeyDown={handleKeyDown}
-      autoFocus
-      style={{
-        border: '1px solid #ccc',
-        borderRadius: '4px',
-        padding: '2px 4px',
-        width: '100%',
-      }}
-    />
-  ) : (
-    <span onDoubleClick={handleDoubleClick} style={{ flexGrow: 1 }}>
-      {label}
-    </span>
-  );
-};
-
-export { SortableItem };

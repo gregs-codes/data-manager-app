@@ -10,7 +10,6 @@ import {
   TableHead,
   TableRow,
   Paper,
-  TableSortLabel,
   Button,
   Typography,
   Box,
@@ -75,16 +74,9 @@ const DataTable = ({ data, columns, setData, setColumns }) => {
   // Handle sorting
   const handleSort = (columnId) => {
     const isAsc = orderBy === columnId && order === 'asc';
-    setOrder(isAsc ? 'desc' : 'asc');
+    const newOrder = isAsc ? 'desc' : 'asc';
+    setOrder(newOrder);
     setOrderBy(columnId);
-    const sortedData = [...data].sort((a, b) => {
-      const aValue = a[columnId] || '';
-      const bValue = b[columnId] || '';
-      if (aValue < bValue) return isAsc ? -1 : 1;
-      if (aValue > bValue) return isAsc ? 1 : -1;
-      return 0;
-    });
-    setData(sortedData);
   };
 
   // Handle editing column names
@@ -97,17 +89,9 @@ const DataTable = ({ data, columns, setData, setColumns }) => {
 
   // Reset layout to original state
   const resetLayout = () => {
-    if (originalColumns.length > 0 && originalData.length > 0) {
-      setColumns(originalColumns);
-      setData(originalData);
-      setOriginalColumns([]);
-      setOriginalData([]);
-      setSnackbar({ open: true, message: 'Layout reset successfully!', severity: 'success' });
-    } else {
-      setSnackbar({ open: true, message: 'No layout to reset.', severity: 'info' });
-    }
-    // Clear localStorage if used
     localStorage.removeItem('columns');
+    window.location.reload();
+    // Clear localStorage if used
   };
 
   // Undo header detection: Move current headers back to data and reset columns to defaults
@@ -130,6 +114,9 @@ const DataTable = ({ data, columns, setData, setColumns }) => {
       label: `col ${index + 1}`,
     }));
     setColumns(defaultColumns);
+    // Reset sorting
+    setOrder('asc');
+    setOrderBy('');
   };
 
   // Promote the first data row to headers
@@ -137,8 +124,9 @@ const DataTable = ({ data, columns, setData, setColumns }) => {
     if (data.length === 0) return;
 
     const firstRow = data[0];
+    console.log('first row', firstRow);
     const newColumns = Object.keys(firstRow).map((key, index) => ({
-      id: `col-${index + 1}`,
+      id: key, // Use the actual key for sorting consistency
       label: firstRow[key] || `col ${index + 1}`,
     }));
 
@@ -146,7 +134,35 @@ const DataTable = ({ data, columns, setData, setColumns }) => {
 
     setColumns(newColumns);
     setData(newData);
+    // Reset sorting
+    setOrder('asc');
+    setOrderBy('');
   };
+
+  // Ensure `orderBy` corresponds to a valid column
+  useEffect(() => {
+    if (columns.length > 0) {
+      if (!columns.some((col) => col.id === orderBy)) {
+        setOrder('asc');
+        setOrderBy(columns[0].id);
+      }
+    }
+  }, [columns, orderBy]);
+
+  // Apply sorting whenever `order` or `orderBy` changes
+  useEffect(() => {
+    if (orderBy) {
+      const sortedData = [...data].sort((a, b) => {
+        const aValue = a[orderBy] || '';
+        const bValue = b[orderBy] || '';
+        if (aValue < bValue) return order === 'asc' ? -1 : 1;
+        if (aValue > bValue) return order === 'asc' ? 1 : -1;
+        return 0;
+      });
+      setData(sortedData);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order, orderBy]);
 
   return (
     <>
@@ -157,7 +173,12 @@ const DataTable = ({ data, columns, setData, setColumns }) => {
         <Button variant="outlined" color="secondary" onClick={resetLayout}>
           Reset Layout
         </Button>
-        <Button variant="outlined" color="primary" onClick={undoHeaderDetection}>
+        <Button
+          variant="outlined"
+          color="primary"
+          onClick={undoHeaderDetection}
+          disabled={columns.length === 0}
+        >
           Undo Header Detection
         </Button>
         <Button
@@ -188,6 +209,9 @@ const DataTable = ({ data, columns, setData, setColumns }) => {
                       id={col.id}
                       label={col.label}
                       onEdit={handleEditColumn}
+                      onSort={handleSort}
+                      order={order}
+                      orderBy={orderBy}
                     />
                   ))}
                 </TableRow>
